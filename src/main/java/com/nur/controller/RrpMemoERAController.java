@@ -1,5 +1,6 @@
 package com.nur.controller;
 
+import com.nur.CommonUtil;
 import com.nur.dto.RrpMemoERADTO;
 import com.nur.service.RrpMemoERAService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,6 +22,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import static com.nur.CommonUtil.*;
+
+
 @Slf4j
 @RestController
 @RequestMapping(value = "/api/era/v1/adjustments/report")
@@ -29,9 +33,12 @@ public class RrpMemoERAController {
     @Autowired
     private RrpMemoERAService rrpMemoERAService;
 
-//    @Value("${era.upload.rrpMemo.header.names}")
-//    private String[] uploadHeaderNames;
-//
+    @Value("${era.upload.rrpMemo.header.names}")
+    private String[] uploadHeaderNames;
+
+    @Value("${era.upload.rrpMemo.header.types}")
+    private String[] uploadHeaderTypes;
+
 //    @Value("${era.export.rrpMemo.header.names}")
 //    private String[] exportHeaderNames;
 //
@@ -67,22 +74,31 @@ public class RrpMemoERAController {
         try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
             Sheet sheet = workbook.getSheetAt(0); // Assuming data is in the first sheet
             for (Row row : sheet) {
-                // Skip the header row
-                if (row.getRowNum() == 0) {
+                // Skip the header row and rows with missing/empty critical data
+                if (row.getRowNum() == 0 || row.getCell(0) == null ||
+                        CommonUtil.isAnyTrue(
+                                isEmpty(getStringCellValue(row, 0, uploadHeaderNames, uploadHeaderTypes)),
+                                isEmpty(getNumericCellValue(row, 1, uploadHeaderNames, uploadHeaderTypes)),
+                                isEmpty(getNumericCellValue(row, 2, uploadHeaderNames, uploadHeaderTypes)),
+                                isEmpty(getDateCellValue(row, 4, uploadHeaderNames, uploadHeaderTypes)))) {
                     continue;
                 }
 
+                int col = 0;
                 RrpMemoERADTO dto = new RrpMemoERADTO();
                 dto.setActive(true);
-                dto.setIsNew(row.getCell(0).getStringCellValue());
-                dto.setMleGlEntyId(row.getCell(1).getStringCellValue());
-                dto.setClndrId((int) row.getCell(2).getNumericCellValue());
-                dto.setBatchCd(row.getCell(3).getStringCellValue());
-                dto.setMleAnnmntYear((int) row.getCell(4).getNumericCellValue());
-                dto.setUploadTime(row.getCell(5).getDateCellValue());
+                dto.setIsNew(getStringCellValue(row, col++, uploadHeaderNames, uploadHeaderTypes));
+                dto.setMleGlEntyId(getStringCellValue(row, col++, uploadHeaderNames, uploadHeaderTypes));
+                dto.setClndrId(getNumericCellValue(row, col++, uploadHeaderNames, uploadHeaderTypes));
+                dto.setBatchCd(getStringCellValue(row, col++, uploadHeaderNames, uploadHeaderTypes));
+                dto.setMleAnnmntYear(getNumericCellValue(row, col++, uploadHeaderNames, uploadHeaderTypes));
+                dto.setUploadTime(CommonUtil.getDateCellValue(row, col++, uploadHeaderNames, uploadHeaderTypes));
                 dto.setModifiedTime(new Date());
                 dtos.add(dto);
             }
+        } catch (IOException ex) {
+            log.error("Error parsing Excel file", ex);
+            throw new RuntimeException("Failed to parse Excel file.");
         }
         return dtos;
     }
