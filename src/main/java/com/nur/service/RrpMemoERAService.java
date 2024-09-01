@@ -1,9 +1,9 @@
 package com.nur.service;
 
-import org.springframework.web.multipart.MultipartFile;
+import com.nur.dto.RrpMemoERADTO;
 
-import java.io.IOException;
+import java.util.List;
 
 public interface RrpMemoERAService {
-    void uploadRrpMemo(MultipartFile file) throws IOException;
+    void uploadRrpMemo(List<RrpMemoERADTO> dtos);
 }

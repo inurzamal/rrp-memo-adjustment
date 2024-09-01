@@ -4,6 +4,10 @@ import com.nur.dto.RrpMemoERADTO;
 import com.nur.service.RrpMemoERAService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
@@ -13,6 +17,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Slf4j
@@ -44,12 +50,41 @@ public class RrpMemoERAController {
     public void uploadRrpMemo(@RequestPart(required = true, name = "file") MultipartFile file) {
         log.info("This is uploadRrpMemo era controller");
         try {
-            rrpMemoERAService.uploadRrpMemo(file);
-            log.info("Upload successful.");
+            // Parse Excel file into DTOs
+            List<RrpMemoERADTO> dtos = parseExcelFile(file);
+
+            // Pass DTOs to the service for mapping and saving
+            rrpMemoERAService.uploadRrpMemo(dtos);
+            log.info("Upload successful with {} records.", dtos.size());
         } catch (IOException e) {
             log.error("Error occurred while uploading file: ", e);
             throw new RuntimeException("File upload failed, please try again.");
         }
+    }
+
+    private List<RrpMemoERADTO> parseExcelFile(MultipartFile file) throws IOException {
+        List<RrpMemoERADTO> dtos = new ArrayList<>();
+        try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
+            Sheet sheet = workbook.getSheetAt(0); // Assuming data is in the first sheet
+            for (Row row : sheet) {
+                // Skip the header row
+                if (row.getRowNum() == 0) {
+                    continue;
+                }
+
+                RrpMemoERADTO dto = new RrpMemoERADTO();
+                dto.setActive(true);
+                dto.setIsNew(row.getCell(0).getStringCellValue());
+                dto.setMleGlEntyId(row.getCell(1).getStringCellValue());
+                dto.setClndrId((int) row.getCell(2).getNumericCellValue());
+                dto.setBatchCd(row.getCell(3).getStringCellValue());
+                dto.setMleAnnmntYear((int) row.getCell(4).getNumericCellValue());
+                dto.setUploadTime(row.getCell(5).getDateCellValue());
+                dto.setModifiedTime(new Date());
+                dtos.add(dto);
+            }
+        }
+        return dtos;
     }
 
     @GetMapping("/rrpMemo/export")
