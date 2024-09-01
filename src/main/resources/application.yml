@@ -1,0 +1,18 @@
+#spring:
+#  datasource:
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+#    url: jdbc:mysql://localhost:3306/adwp_work1
+#    username: root
+#    password: root
+#    hikari:
+#      maximum-pool-size: 10
+#      minimum-idle: 5
+#      idle-timeout: 600000 # 10 minutes
+#      connection-timeout: 30000 # 30 seconds
+#      max-lifetime: 1800000 # 30 minutes
+#  jpa:
+#    hibernate:
+#      ddl-auto: update
+#      properties:
+#        hibernate.dialect: org.hibernate.dialect.MySQLDialect
+#
