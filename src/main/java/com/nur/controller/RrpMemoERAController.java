@@ -117,7 +117,6 @@ public class RrpMemoERAController {
     @Operation(summary = "This API is to update Rrp Memo Data")
     public void updateRrpMemo(@RequestBody(required = true) RrpMemoERADTO rrpMemoERADTO) {
         log.info("This is updateRrpMemo era controller");
-
+        rrpMemoERAService.updateRrpMemo(rrpMemoERADTO);
     }
-
 }

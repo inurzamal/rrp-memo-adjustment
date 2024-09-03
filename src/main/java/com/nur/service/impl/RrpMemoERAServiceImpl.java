@@ -50,24 +50,73 @@ public class RrpMemoERAServiceImpl implements RrpMemoERAService {
 
     @Override
     public void uploadRrpMemo(List<RrpMemoERADTO> dtos) {
-        List<RrpMemoERAEntity> entities = mapDtosToEntities(dtos);
+        List<RrpMemoERAEntity> entities = new ArrayList<>();
+
+        for (RrpMemoERADTO dto : dtos) {
+            RrpMemoEntityId entityId = new RrpMemoEntityId(dto.getMleGlEntyId(), dto.getClndrId());
+
+            // Check if an entity with the given ID already exists in the database
+            RrpMemoERAEntity existingEntity = repository.findById(entityId).orElse(null);
+
+            if (existingEntity != null) {
+                // Update existing entity's fields from the DTO
+                existingEntity.setIsNew(dto.getIsNew());
+                existingEntity.setBatchCd(dto.getBatchCd());
+                existingEntity.setMleAnnmntYear(dto.getMleAnnmntYear());
+                existingEntity.setActive(dto.isActive());
+                existingEntity.setModifiedTs(LocalDateTime.now());  // Update modified timestamp
+
+                log.info("Updating existing entity with ID: {}", entityId);
+                entities.add(existingEntity);
+            } else {
+                // Create a new entity from the DTO
+                RrpMemoERAEntity newEntity = mapDtoToEntity(dto);
+                newEntity.setCreatedTs(LocalDateTime.now());   // Set created timestamp
+                newEntity.setModifiedTs(LocalDateTime.now());  // Set modified timestamp
+
+                log.info("Creating new entity with ID: {}", entityId);
+                entities.add(newEntity);
+            }
+        }
+
+        // Save or update entities in the repository
         repository.saveAll(entities);
-        log.info("Uploaded {} records from the DTOs.", entities.size());
+        log.info("Uploaded or updated {} records from the DTOs.", entities.size());
     }
 
-    private List<RrpMemoERAEntity> mapDtosToEntities(List<RrpMemoERADTO> dtos) {
-        List<RrpMemoERAEntity> entities = new ArrayList<>();
-        for (RrpMemoERADTO dto : dtos) {
-            RrpMemoERAEntity entity = new RrpMemoERAEntity();
-            entity.setId(new RrpMemoEntityId(dto.getMleGlEntyId(), dto.getClndrId()));
-            entity.setActive(dto.isActive());
-            entity.setIsNew(dto.getIsNew());
-            entity.setBatchCd(dto.getBatchCd());
-            entity.setMleAnnmntYear(dto.getMleAnnmntYear());
-            entity.setCreatedTs(LocalDateTime.now());
-            entity.setModifiedTs(LocalDateTime.now());
-            entities.add(entity);
-        }
-        return entities;
+    @Override
+    public void updateRrpMemo(RrpMemoERADTO dto) {
+        // Extract the composite ID from the DTO
+        RrpMemoEntityId entityId = new RrpMemoEntityId(dto.getMleGlEntyId(), dto.getClndrId());
+
+        // Fetch the existing entity from the database
+        RrpMemoERAEntity existingEntity = repository.findById(entityId)
+                .orElseThrow(() -> new RuntimeException("Rrp Memo record not found with ID: " + entityId));
+
+        // Update the existing entity's fields with values from the DTO
+        existingEntity.setIsNew(dto.getIsNew());
+        existingEntity.setBatchCd(dto.getBatchCd());
+        existingEntity.setMleAnnmntYear(dto.getMleAnnmntYear());
+        existingEntity.setActive(dto.isActive());
+        existingEntity.setModifiedTs(LocalDateTime.now());  // Update modified timestamp
+
+        // Save the updated entity
+        repository.save(existingEntity);
+        log.info("Updated entity with ID: {}", entityId);
     }
+
+
+    // Maps a single DTO to a new entity, without handling existing records
+    private RrpMemoERAEntity mapDtoToEntity(RrpMemoERADTO dto) {
+        RrpMemoERAEntity entity = new RrpMemoERAEntity();
+        entity.setId(new RrpMemoEntityId(dto.getMleGlEntyId(), dto.getClndrId()));
+        entity.setActive(dto.isActive());
+        entity.setIsNew(dto.getIsNew());
+        entity.setBatchCd(dto.getBatchCd());
+        entity.setMleAnnmntYear(dto.getMleAnnmntYear());
+        // Additional fields can be mapped here as needed
+        return entity;
+    }
+
+
 }

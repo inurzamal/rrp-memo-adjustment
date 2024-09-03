@@ -9,5 +9,7 @@ public interface RrpMemoERAService {
     List<RrpMemoERADTO> getAllRrpMemoData();
     void uploadRrpMemo(List<RrpMemoERADTO> dtos);
 
+    void updateRrpMemo(RrpMemoERADTO dto);
+
 
 }
