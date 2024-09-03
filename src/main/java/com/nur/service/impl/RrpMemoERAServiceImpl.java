@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,6 +19,34 @@ import java.util.List;
 public class RrpMemoERAServiceImpl implements RrpMemoERAService {
 
     private final RrpMemoERARepository repository;
+
+    // RrpMemoERAServiceImpl.java
+    @Override
+    public List<RrpMemoERADTO> getAllRrpMemoData() {
+
+        List<RrpMemoERAEntity> entities = repository.getAllRrpMemos();
+
+        // Convert entities to DTOs
+        List<RrpMemoERADTO> dtos = new ArrayList<>();
+        for (RrpMemoERAEntity entity : entities) {
+            RrpMemoERADTO dto = new RrpMemoERADTO();
+
+            // Set DTO fields based on entity values
+            dto.setMleGlEntyId(entity.getId().getMleGlEntyId()); // Set from embedded ID field
+            dto.setClndrId(entity.getId().getClndrId());         // Set from embedded ID field
+            dto.setActive(entity.isActive());
+            dto.setIsNew(entity.getIsNew());
+            dto.setBatchCd(entity.getBatchCd());
+            dto.setMleAnnmntYear(entity.getMleAnnmntYear());
+            dto.setCreatedTs(entity.getCreatedTs());
+            dto.setModifiedTs(entity.getModifiedTs());
+
+            // Add DTO to the list
+            dtos.add(dto);
+        }
+
+        return dtos;
+    }
 
     @Override
     public void uploadRrpMemo(List<RrpMemoERADTO> dtos) {
@@ -35,8 +64,8 @@ public class RrpMemoERAServiceImpl implements RrpMemoERAService {
             entity.setIsNew(dto.getIsNew());
             entity.setBatchCd(dto.getBatchCd());
             entity.setMleAnnmntYear(dto.getMleAnnmntYear());
-            entity.setUploadTime(dto.getUploadTime());
-            entity.setModifiedTime(dto.getModifiedTime());
+            entity.setCreatedTs(LocalDateTime.now());
+            entity.setModifiedTs(LocalDateTime.now());
             entities.add(entity);
         }
         return entities;

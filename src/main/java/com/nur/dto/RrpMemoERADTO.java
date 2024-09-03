@@ -2,7 +2,7 @@ package com.nur.dto;
 
 import lombok.Data;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Data
 public class RrpMemoERADTO implements BaseDTO {
@@ -13,7 +13,7 @@ public class RrpMemoERADTO implements BaseDTO {
     private Integer clndrId;
     private String batchCd;
     private Integer mleAnnmntYear;
-    private Date uploadTime;
-    private Date modifiedTime;
+    private LocalDateTime createdTs;
+    private LocalDateTime modifiedTs;
 
 }

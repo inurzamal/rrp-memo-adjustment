@@ -19,7 +19,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import static com.nur.CommonUtil.*;
@@ -49,7 +48,7 @@ public class RrpMemoERAController {
     @Operation(summary = "This API is to fetch Rrp Memo Data")
     public List<RrpMemoERADTO> getRrpMemoData() {
         log.info("In getRrpMemo() era controller");
-        return null;
+        return rrpMemoERAService.getAllRrpMemoData();
     }
 
     @PostMapping(value = "/rrpMemo/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -77,10 +76,8 @@ public class RrpMemoERAController {
                 // Skip the header row and rows with missing/empty critical data
                 if (row.getRowNum() == 0 || row.getCell(0) == null ||
                         CommonUtil.isAnyTrue(
-                                isEmpty(getStringCellValue(row, 0, uploadHeaderNames, uploadHeaderTypes)),
-                                isEmpty(getNumericCellValue(row, 1, uploadHeaderNames, uploadHeaderTypes)),
-                                isEmpty(getNumericCellValue(row, 2, uploadHeaderNames, uploadHeaderTypes)),
-                                isEmpty(getDateCellValue(row, 4, uploadHeaderNames, uploadHeaderTypes)))) {
+                                isEmpty(getStringCellValue(row, 1, uploadHeaderNames, uploadHeaderTypes)),
+                                isEmpty(getNumericCellValue(row, 2, uploadHeaderNames, uploadHeaderTypes)))) {
                     continue;
                 }
 
@@ -92,8 +89,6 @@ public class RrpMemoERAController {
                 dto.setClndrId(getNumericCellValue(row, col++, uploadHeaderNames, uploadHeaderTypes));
                 dto.setBatchCd(getStringCellValue(row, col++, uploadHeaderNames, uploadHeaderTypes));
                 dto.setMleAnnmntYear(getNumericCellValue(row, col++, uploadHeaderNames, uploadHeaderTypes));
-                dto.setUploadTime(CommonUtil.getDateCellValue(row, col++, uploadHeaderNames, uploadHeaderTypes));
-                dto.setModifiedTime(new Date());
                 dtos.add(dto);
             }
         } catch (IOException ex) {
@@ -118,7 +113,7 @@ public class RrpMemoERAController {
 
     }
 
-    @PostMapping("/rrpMemo")
+    @PutMapping("/rrpMemo")
     @Operation(summary = "This API is to update Rrp Memo Data")
     public void updateRrpMemo(@RequestBody(required = true) RrpMemoERADTO rrpMemoERADTO) {
         log.info("This is updateRrpMemo era controller");

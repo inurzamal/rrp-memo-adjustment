@@ -4,7 +4,7 @@ import com.nur.domain.id.RrpMemoEntityId;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.springframework.data.domain.Persistable;
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Data
 @Entity
@@ -18,8 +18,8 @@ public class RrpMemoERAEntity implements BaseEntity, Persistable<RrpMemoEntityId
     private String isNew;
     private String batchCd;
     private Integer mleAnnmntYear;
-    private Date uploadTime;
-    private Date modifiedTime;
+    private LocalDateTime createdTs;
+    private LocalDateTime modifiedTs;
 
     @Transient
     private boolean isNewRecord = true;
@@ -27,12 +27,12 @@ public class RrpMemoERAEntity implements BaseEntity, Persistable<RrpMemoEntityId
 
     @Override
     public RrpMemoEntityId getId() {
-        return null;
+        return id;
     }
 
     @Override
     public boolean isNew() {
-        return false;
+        return isNewRecord;
     }
 
     @PostLoad
