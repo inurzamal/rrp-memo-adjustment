@@ -20,7 +20,6 @@ public class RrpMemoERAServiceImpl implements RrpMemoERAService {
 
     private final RrpMemoERARepository repository;
 
-    // RrpMemoERAServiceImpl.java
     @Override
     public List<RrpMemoERADTO> getAllRrpMemoData() {
 
