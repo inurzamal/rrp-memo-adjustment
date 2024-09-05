@@ -4,6 +4,131 @@ import com.nur.domain.RrpMemoERAEntity;
 import com.nur.domain.id.RrpMemoEntityId;
 import com.nur.dto.RrpMemoERADTO;
 import com.nur.repository.RrpMemoERARepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.*;
+
+class RrpMemoERAServiceImplTest {
+
+    @Mock
+    private RrpMemoERARepository repository;
+
+    @InjectMocks
+    private RrpMemoERAServiceImpl service;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @ParameterizedTest
+    @MethodSource("dataProvider")
+    void testGetAllRrpMemos(List<RrpMemoERADTO> dtoList, List<RrpMemoERAEntity> entityList) {
+        // Mocking repository response
+        when(repository.getAllRrpMemos()).thenReturn(entityList);
+
+        // Execution
+        List<RrpMemoERADTO> result = service.getAllRrpMemoData();
+
+        // Verification
+        assertNotNull(result);
+        assertEquals(entityList.size(), result.size());
+        verify(repository, times(1)).getAllRrpMemos();
+    }
+
+    @ParameterizedTest
+    @MethodSource("dataProvider")
+    void testUploadRrpMemo(List<RrpMemoERADTO> dtoList, List<RrpMemoERAEntity> entityList) {
+        // Mock repository save
+        when(repository.saveAll(anyList())).thenReturn(entityList);
+
+        // Execution
+        service.uploadRrpMemo(dtoList);
+
+        // Verification
+        verify(repository, times(1)).saveAll(anyList());
+    }
+
+    @ParameterizedTest
+    @MethodSource("dataProvider")
+    void testUpdateRrpMemo(List<RrpMemoERADTO> dtoList, List<RrpMemoERAEntity> entityList) {
+        RrpMemoERADTO dto = dtoList.get(0);
+        RrpMemoERAEntity entity = entityList.get(0);
+
+        // Mock repository findById and save
+        when(repository.findById(any(RrpMemoEntityId.class))).thenReturn(Optional.of(entity));
+        when(repository.save(any(RrpMemoERAEntity.class))).thenReturn(entity);
+
+        // Execution
+        service.updateRrpMemo(dto);
+
+        // Verification
+        verify(repository, times(1)).findById(any(RrpMemoEntityId.class));
+        verify(repository, times(1)).save(any(RrpMemoERAEntity.class));
+    }
+
+    @ParameterizedTest
+    @MethodSource("dataProvider")
+    void testDeleteRrpMemo(List<RrpMemoERADTO> dtoList, List<RrpMemoERAEntity> entityList) {
+        // Execution
+        service.deleteRrpMemo(dtoList);
+
+        // Verification
+        verify(repository, times(1)).deleteAllById(anyList());
+        verify(repository, times(1)).flush();
+    }
+
+    // Data provider method for parameterized tests using Arguments.of()
+    private static Stream<Arguments> dataProvider() {
+        RrpMemoERADTO dto1 = new RrpMemoERADTO();
+        dto1.setMleGlEntyId("MLE123");
+        dto1.setClndrId(2024);
+        dto1.setIsNew("YES");
+
+        RrpMemoERAEntity entity1 = new RrpMemoERAEntity();
+        entity1.setId(new RrpMemoEntityId(dto1.getMleGlEntyId(), dto1.getClndrId()));
+        entity1.setActive(true);
+
+        RrpMemoERADTO dto2 = new RrpMemoERADTO();
+        dto2.setMleGlEntyId("MLE124");
+        dto2.setClndrId(2023);
+        dto2.setIsNew("NO");
+
+        RrpMemoERAEntity entity2 = new RrpMemoERAEntity();
+        entity2.setId(new RrpMemoEntityId(dto2.getMleGlEntyId(), dto2.getClndrId()));
+        entity2.setActive(false);
+
+        // Returning a Stream<Arguments> using Arguments.of()
+        return Stream.of(
+                Arguments.of(Arrays.asList(dto1), Arrays.asList(entity1)),
+                Arguments.of(Arrays.asList(dto2), Arrays.asList(entity2))
+        );
+    }
+}
+
+
+
+/*
+package com.nur.service.impl;
+import com.nur.domain.RrpMemoERAEntity;
+import com.nur.domain.id.RrpMemoEntityId;
+import com.nur.dto.RrpMemoERADTO;
+import com.nur.repository.RrpMemoERARepository;
 import org.instancio.Instancio;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -114,3 +239,4 @@ class RrpMemoERAServiceImplTest {
         return Instancio.ofList(RrpMemoERAEntity.class).size(2).create();
     }
 }
+*/
