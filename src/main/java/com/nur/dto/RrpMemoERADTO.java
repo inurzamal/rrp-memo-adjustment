@@ -5,7 +5,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-public class RrpMemoERADTO implements BaseDTO {
+public class RrpMemoERADTO implements BaseDTO, DTOEntity {
 
     private boolean isActive;
     private String isNew;

@@ -22,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,7 +34,8 @@ import static com.nur.util.CommonUtil.*;
 @RequestMapping(value = "/api/era/v1/adjustments/report")
 public class RrpMemoERAController {
 
-    private static final String RRP_MEMO_FILE_NAME = "rrp";
+    private static final String RRP_MEMO_FILE_NAME = "RRP_MEMO_";
+    private static final String RRP_MEMO_SHEET_NAME = "rrp";
     @Autowired
     private RrpMemoERAService rrpMemoERAService;
 
@@ -110,15 +112,13 @@ public class RrpMemoERAController {
         ByteArrayInputStream inputStream = null;
 
         try {
-            // Generating Excel data
-            inputStream = ExcelGeneratorUtil.exportToExcel(RRP_MEMO_FILE_NAME, exportHeaderNames, rrpMemoERAService.getAllRrpMemoData(), exportFieldNames,
-                    "A1:V", // Adjust this range if needed
-                    21      // Maximum column width
-            );
-
             // Setting up response headers for file download
             HttpHeaders headers = new HttpHeaders();
-            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + RRP_MEMO_FILE_NAME + ".xlsx");
+            headers.add(HttpHeaders.CONTENT_DISPOSITION,
+                    "attachment; filename=" + RRP_MEMO_FILE_NAME + LocalDateTime.now()+".xlsx");
+
+            // Generating Excel data
+            inputStream = ExcelGeneratorUtil.exportToExcel(RRP_MEMO_SHEET_NAME, exportHeaderNames, rrpMemoERAService.getAllRrpMemoData(), exportFieldNames, 21);
 
             return ResponseEntity.ok().headers(headers)
                     .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
