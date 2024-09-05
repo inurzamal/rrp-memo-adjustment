@@ -14,11 +14,22 @@ public class RrpMemoERAEntity implements BaseEntity, Persistable<RrpMemoEntityId
     @EmbeddedId
     private RrpMemoEntityId id;
 
+    @Column(name = "IS_ACTIVE")
     private boolean isActive;
+
+    @Column(name = "IS_NEW")
     private String isNew;
+
+    @Column(name = "BATCH_CD")
     private String batchCd;
+
+    @Column(name = "MLE_ANNMNT_YEAR")
     private Integer mleAnnmntYear;
+
+    @Column(name = "CREATED_TS")
     private LocalDateTime createdTs;
+
+    @Column(name = "MODIFIED_TS")
     private LocalDateTime modifiedTs;
 
     @Transient

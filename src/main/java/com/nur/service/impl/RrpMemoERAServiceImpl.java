@@ -105,6 +105,15 @@ public class RrpMemoERAServiceImpl implements RrpMemoERAService {
         log.info("Updated entity with ID: {}", entityId);
     }
 
+    @Override
+    public void deleteRrpMemo(List<RrpMemoERADTO> rrpMemoERADTOList) {
+        log.info("In deleteRrpMemo() of Rrp Service impl");
+        List<RrpMemoEntityId> entityIds = rrpMemoERADTOList.stream()
+                .map(dto -> new RrpMemoEntityId(dto.getMleGlEntyId(), dto.getClndrId())).toList();
+        repository.deleteAllById(entityIds);
+        repository.flush();
+    }
+
 
     // Maps a single DTO to a new entity, without handling existing records
     private RrpMemoERAEntity mapDtoToEntity(RrpMemoERADTO dto) {

@@ -1,8 +1,9 @@
 package com.nur.controller;
 
-import com.nur.CommonUtil;
 import com.nur.dto.RrpMemoERADTO;
 import com.nur.service.RrpMemoERAService;
+import com.nur.util.CommonUtil;
+import com.nur.util.ExcelGeneratorUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.Row;
@@ -12,16 +13,19 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.nur.CommonUtil.*;
+import static com.nur.util.CommonUtil.*;
 
 
 @Slf4j
@@ -29,6 +33,7 @@ import static com.nur.CommonUtil.*;
 @RequestMapping(value = "/api/era/v1/adjustments/report")
 public class RrpMemoERAController {
 
+    private static final String RRP_MEMO_FILE_NAME = "rrp";
     @Autowired
     private RrpMemoERAService rrpMemoERAService;
 
@@ -38,11 +43,11 @@ public class RrpMemoERAController {
     @Value("${era.upload.rrpMemo.header.types}")
     private String[] uploadHeaderTypes;
 
-//    @Value("${era.export.rrpMemo.header.names}")
-//    private String[] exportHeaderNames;
-//
-//    @Value("${era.export.rrpMemo.field.names}")
-//    private String[] exportFieldNames;
+    @Value("${era.export.rrpMemo.header.names}")
+    private String[] exportHeaderNames;
+
+    @Value("${era.export.rrpMemo.field.names}")
+    private String[] exportFieldNames;
 
     @GetMapping("/rrpMemo")
     @Operation(summary = "This API is to fetch Rrp Memo Data")
@@ -100,17 +105,38 @@ public class RrpMemoERAController {
 
     @GetMapping("/rrpMemo/export")
     @Operation(summary = "This API is to export Rrp Memo Data")
-    public ResponseEntity<InputStreamResource> exportRrpMemo(){
+    public ResponseEntity<InputStreamResource> exportRrpMemo() {
         log.info("This is exportRrpMemo era controller");
+        ByteArrayInputStream inputStream = null;
 
-        return null;
+        try {
+            // Generating Excel data
+            inputStream = ExcelGeneratorUtil.exportToExcel(RRP_MEMO_FILE_NAME, exportHeaderNames, rrpMemoERAService.getAllRrpMemoData(), exportFieldNames,
+                    "A1:V", // Adjust this range if needed
+                    21      // Maximum column width
+            );
+
+            // Setting up response headers for file download
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + RRP_MEMO_FILE_NAME + ".xlsx");
+
+            return ResponseEntity.ok().headers(headers)
+                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .body(new InputStreamResource(inputStream));
+        } catch (Exception e) {
+            log.error("Error occurred during Excel export: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).build();
+        }
     }
+
 
     @DeleteMapping("/rrpMemo/delete")
     @Operation(summary = "This API is to delete Rrp Memo Data")
     public void deleteRrpMemo(@RequestBody(required = true) List<RrpMemoERADTO> rrpMemoERADTOList){
         log.info("This is deleteRrpMemo era controller");
-
+        if (!CollectionUtils.isEmpty(rrpMemoERADTOList)) {
+            rrpMemoERAService.deleteRrpMemo(rrpMemoERADTOList);
+        }
     }
 
     @PutMapping("/rrpMemo")
