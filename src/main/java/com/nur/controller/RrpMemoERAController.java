@@ -46,10 +46,10 @@ public class RrpMemoERAController {
     private String[] uploadHeaderTypes;
 
     @Value("${era.export.rrpMemo.header.names}")
-    private String[] exportHeaderNames;
+    String[] exportHeaderNames;
 
     @Value("${era.export.rrpMemo.field.names}")
-    private String[] exportFieldNames;
+    String[] exportFieldNames;
 
     @GetMapping("/rrpMemo")
     @Operation(summary = "This API is to fetch Rrp Memo Data")
