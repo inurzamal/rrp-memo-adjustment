@@ -76,6 +76,9 @@ public class RrpMemoERAController {
     }
 
     private List<RrpMemoERADTO> parseExcelFile(MultipartFile file) throws IOException {
+        if (file.isEmpty()) {
+            throw new IOException("The supplied file was empty (zero bytes long)");
+        }
         List<RrpMemoERADTO> dtos = new ArrayList<>();
         try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
             Sheet sheet = workbook.getSheetAt(0); // Assuming data is in the first sheet
@@ -100,7 +103,7 @@ public class RrpMemoERAController {
             }
         } catch (IOException ex) {
             log.error("Error parsing Excel file", ex);
-            throw new RuntimeException("Failed to parse Excel file.");
+            throw new IOException("Failed to parse Excel file.", ex); // Ensure IOException is thrown
         }
         return dtos;
     }

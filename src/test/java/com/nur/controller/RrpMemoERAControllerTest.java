@@ -6,6 +6,7 @@ import com.nur.util.ExcelGeneratorUtil;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -27,8 +28,8 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
@@ -145,6 +146,73 @@ class RrpMemoERAControllerTest {
 
         // Verify
         verify(rrpMemoERAService, times(1)).updateRrpMemo(any(RrpMemoERADTO.class));
+    }
+
+    // Edge Case Tests and Error Handling
+
+    @Test
+    void testUploadRrpMemoWithEmptyFile() throws IOException {
+        // Create an empty MockMultipartFile
+        MockMultipartFile emptyFile = new MockMultipartFile(
+                "file", "empty.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", new byte[]{}
+        );
+
+        // Execute and Verify
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> controller.uploadRrpMemo(emptyFile));
+        assertEquals("File upload failed, please try again.", exception.getMessage());
+    }
+
+
+
+    @Test
+    void testExportRrpMemoThrowsException() {
+        // Mock the static method ExcelGeneratorUtil.exportToExcel
+        try (MockedStatic<ExcelGeneratorUtil> mockedExcelUtil = mockStatic(ExcelGeneratorUtil.class)) {
+            // Mocking the exportToExcel behavior to throw an exception
+            mockedExcelUtil.when(() -> ExcelGeneratorUtil.exportToExcel(
+                    eq(RRP_MEMO_SHEET_NAME),
+                    eq(exportHeaderNames),
+                    anyList(),
+                    eq(exportFieldNames),
+                    eq(21))
+            ).thenThrow(new RuntimeException("Excel export failed"));
+
+            // Mock service call
+            when(rrpMemoERAService.getAllRrpMemoData()).thenReturn(Collections.emptyList());
+
+            // Execute
+            ResponseEntity<InputStreamResource> response = controller.exportRrpMemo();
+
+            // Verify response
+            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+            assertNull(response.getBody());
+        }
+    }
+
+
+    @Test
+    void testDeleteRrpMemoWithEmptyList() {
+        List<RrpMemoERADTO> emptyList = Collections.emptyList();
+
+        // Call the delete method with an empty list
+        controller.deleteRrpMemo(emptyList);
+
+        // Verify that deleteRrpMemo was not called with an empty list
+        verify(rrpMemoERAService, never()).deleteRrpMemo(anyList());
+    }
+
+
+
+    @Test
+    void testUpdateRrpMemoThrowsException() {
+        RrpMemoERADTO dto = new RrpMemoERADTO();
+
+        // Mock service update call to throw an exception
+        doThrow(new RuntimeException("Update failed")).when(rrpMemoERAService).updateRrpMemo(any(RrpMemoERADTO.class));
+
+        // Execute and Verify
+        Exception exception = assertThrows(RuntimeException.class, () -> controller.updateRrpMemo(dto));
+        assertEquals("Update failed", exception.getMessage());
     }
 
     // Data Providers
