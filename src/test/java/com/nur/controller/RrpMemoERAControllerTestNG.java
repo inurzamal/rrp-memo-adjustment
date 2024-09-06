@@ -5,6 +5,232 @@ import com.nur.service.RrpMemoERAService;
 import com.nur.util.ExcelGeneratorUtil;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.MockitoAnnotations;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.DataProvider;
+import org.testng.annotations.Test;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import static org.mockito.Mockito.*;
+import static org.testng.Assert.*;
+
+public class RrpMemoERAControllerTestNG {
+
+    @Mock
+    private RrpMemoERAService rrpMemoERAService;
+
+    @Mock
+    private ExcelGeneratorUtil excelGeneratorUtil;
+
+    @InjectMocks
+    private RrpMemoERAController controller;
+
+    private String[] exportHeaderNames = {"IS_ACTIVE", "IS_NEW", "MLE_GL_ENTY_ID", "CLNDR_ID"};
+    private String[] exportFieldNames = {"isActive", "isNew", "mleGlEntyId", "clndrId"};
+    private static final String RRP_MEMO_SHEET_NAME = "rrp";
+
+    @BeforeMethod
+    public void setUp() {
+        MockitoAnnotations.openMocks(this);
+        controller.exportHeaderNames = exportHeaderNames;
+        controller.exportFieldNames = exportFieldNames;
+    }
+
+    @Test(dataProvider = "RrpMemoData")
+    public void testGetRrpMemoData(List<RrpMemoERADTO> dtos) {
+        when(rrpMemoERAService.getAllRrpMemoData()).thenReturn(dtos);
+        List<RrpMemoERADTO> result = controller.getRrpMemoData();
+        assertNotNull(result);
+        assertEquals(dtos.size(), result.size());
+        verify(rrpMemoERAService, times(1)).getAllRrpMemoData();
+    }
+
+    @Test(dataProvider = "UploadData")
+    public void testUploadRrpMemo(MultipartFile file, List<RrpMemoERADTO> dtos) throws IOException {
+        doNothing().when(rrpMemoERAService).uploadRrpMemo(anyList());
+        controller.uploadRrpMemo(file);
+        verify(rrpMemoERAService, times(1)).uploadRrpMemo(anyList());
+    }
+
+    @Test(dataProvider = "RrpMemoData")
+    public void testExportRrpMemo(List<RrpMemoERADTO> dtos) {
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(new byte[]{1, 2, 3, 4});
+        try (MockedStatic<ExcelGeneratorUtil> mockedExcelUtil = mockStatic(ExcelGeneratorUtil.class)) {
+            mockedExcelUtil.when(() -> ExcelGeneratorUtil.exportToExcel(
+                    eq(RRP_MEMO_SHEET_NAME),
+                    eq(exportHeaderNames),
+                    anyList(),
+                    eq(exportFieldNames),
+                    eq(21))
+            ).thenReturn(byteArrayInputStream);
+
+            when(rrpMemoERAService.getAllRrpMemoData()).thenReturn(dtos);
+            ResponseEntity<InputStreamResource> response = controller.exportRrpMemo();
+
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            assertNotNull(response.getBody());
+            assertEquals("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", response.getHeaders().getContentType().toString());
+
+            verify(rrpMemoERAService, times(1)).getAllRrpMemoData();
+            mockedExcelUtil.verify(() -> ExcelGeneratorUtil.exportToExcel(
+                    RRP_MEMO_SHEET_NAME,
+                    exportHeaderNames,
+                    dtos,
+                    exportFieldNames,
+                    21
+            ), times(1));
+        }
+    }
+
+    @Test(dataProvider = "RrpMemoData")
+    public void testDeleteRrpMemo(List<RrpMemoERADTO> dtoList) {
+        doNothing().when(rrpMemoERAService).deleteRrpMemo(anyList());
+        controller.deleteRrpMemo(dtoList);
+        verify(rrpMemoERAService, times(1)).deleteRrpMemo(anyList());
+    }
+
+    @Test(dataProvider = "RrpMemoData")
+    public void testUpdateRrpMemo(List<RrpMemoERADTO> dtoList) {
+        RrpMemoERADTO dto = dtoList.get(0);
+        doNothing().when(rrpMemoERAService).updateRrpMemo(any(RrpMemoERADTO.class));
+        controller.updateRrpMemo(dto);
+        verify(rrpMemoERAService, times(1)).updateRrpMemo(any(RrpMemoERADTO.class));
+    }
+
+    @Test
+    public void testUploadRrpMemoWithEmptyFile() throws IOException {
+        MockMultipartFile emptyFile = new MockMultipartFile(
+                "file", "empty.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", new byte[]{}
+        );
+
+        try {
+            controller.uploadRrpMemo(emptyFile);
+            fail("Expected RuntimeException was not thrown");
+        } catch (RuntimeException exception) {
+            assertEquals(exception.getMessage(), "File upload failed, please try again.");
+        }
+    }
+
+
+    @Test
+    public void testExportRrpMemoThrowsException() {
+        try (MockedStatic<ExcelGeneratorUtil> mockedExcelUtil = mockStatic(ExcelGeneratorUtil.class)) {
+            mockedExcelUtil.when(() -> ExcelGeneratorUtil.exportToExcel(
+                    eq(RRP_MEMO_SHEET_NAME),
+                    eq(exportHeaderNames),
+                    anyList(),
+                    eq(exportFieldNames),
+                    eq(21))
+            ).thenThrow(new RuntimeException("Excel export failed"));
+
+            when(rrpMemoERAService.getAllRrpMemoData()).thenReturn(Collections.emptyList());
+            ResponseEntity<InputStreamResource> response = controller.exportRrpMemo();
+            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+            assertNull(response.getBody());
+        }
+    }
+
+    @Test
+    public void testDeleteRrpMemoWithEmptyList() {
+        List<RrpMemoERADTO> emptyList = Collections.emptyList();
+        controller.deleteRrpMemo(emptyList);
+        verify(rrpMemoERAService, never()).deleteRrpMemo(anyList());
+    }
+
+    @Test
+    public void testUpdateRrpMemoThrowsException() {
+        RrpMemoERADTO dto = new RrpMemoERADTO();
+
+        // Mock the service to throw an exception
+        doThrow(new RuntimeException("Update failed")).when(rrpMemoERAService).updateRrpMemo(any(RrpMemoERADTO.class));
+
+        try {
+            // Call the method that should throw the exception
+            controller.updateRrpMemo(dto);
+            fail("Expected RuntimeException was not thrown");
+        } catch (RuntimeException exception) {
+            // Verify that the exception message matches
+            assertEquals(exception.getMessage(), "Update failed");
+        }
+    }
+
+
+    @DataProvider(name = "RrpMemoData")
+    public Object[][] provideRrpMemoData() {
+        RrpMemoERADTO dto1 = new RrpMemoERADTO();
+        dto1.setMleGlEntyId("MLE123");
+        dto1.setClndrId(2024);
+        dto1.setIsNew("YES");
+
+        RrpMemoERADTO dto2 = new RrpMemoERADTO();
+        dto2.setMleGlEntyId("MLE124");
+        dto2.setClndrId(2023);
+        dto2.setIsNew("NO");
+
+        List<RrpMemoERADTO> dtos1 = new ArrayList<>();
+        dtos1.add(dto1);
+
+        List<RrpMemoERADTO> dtos2 = new ArrayList<>();
+        dtos2.add(dto2);
+
+        return new Object[][]{
+                {dtos1},
+                {dtos2}
+        };
+    }
+
+    @DataProvider(name = "UploadData")
+    public Object[][] provideUploadData() throws IOException {
+        Workbook workbook = new XSSFWorkbook();
+        workbook.createSheet("Sheet1");
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        workbook.write(outputStream);
+        workbook.close();
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "test.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                new ByteArrayInputStream(outputStream.toByteArray())
+        );
+
+        RrpMemoERADTO dto1 = new RrpMemoERADTO();
+        dto1.setMleGlEntyId("MLE123");
+        dto1.setClndrId(2024);
+        dto1.setIsNew("YES");
+
+        List<RrpMemoERADTO> dtos = List.of(dto1);
+
+        return new Object[][]{
+                {file, dtos}
+        };
+    }
+}
+
+
+
+
+
+//Parameterized Test
+/*
+package com.nur.controller;
+
+import com.nur.dto.RrpMemoERADTO;
+import com.nur.service.RrpMemoERAService;
+import com.nur.util.ExcelGeneratorUtil;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -257,3 +483,4 @@ class RrpMemoERAControllerTest {
         );
     }
 }
+*/
