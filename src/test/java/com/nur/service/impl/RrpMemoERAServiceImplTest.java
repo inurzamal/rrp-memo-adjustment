@@ -5,6 +5,7 @@ import com.nur.domain.id.RrpMemoEntityId;
 import com.nur.dto.RrpMemoERADTO;
 import com.nur.repository.RrpMemoERARepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -17,8 +18,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
@@ -81,6 +81,21 @@ class RrpMemoERAServiceImplTest {
         verify(repository, times(1)).findById(any(RrpMemoEntityId.class));
         verify(repository, times(1)).save(any(RrpMemoERAEntity.class));
     }
+
+    @Test
+    void testUpdateRrpMemoEntityNotFound() {
+        RrpMemoERADTO dto = new RrpMemoERADTO();
+        dto.setMleGlEntyId("MLE123");
+        dto.setClndrId(2024);
+
+        // Mock repository to return empty Optional
+        when(repository.findById(any(RrpMemoEntityId.class))).thenReturn(Optional.empty());
+
+        // Execution and Verification
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> service.updateRrpMemo(dto));
+        assertEquals("Rrp Memo record not found with ID: " + new RrpMemoEntityId(dto.getMleGlEntyId(), dto.getClndrId()), exception.getMessage());
+    }
+
 
     @ParameterizedTest
     @MethodSource("dataProvider")
