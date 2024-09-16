@@ -5,9 +5,12 @@ import com.nur.domain.id.RrpMemoEntityId;
 import com.nur.dto.RrpMemoERADTO;
 import com.nur.repository.RrpMemoERARepository;
 import com.nur.service.RrpMemoERAService;
+import com.nur.util.UpdateUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -18,7 +21,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RrpMemoERAServiceImpl implements RrpMemoERAService {
 
-    private final RrpMemoERARepository repository;
+    @Autowired
+    private RrpMemoERARepository repository;
 
     @Override
     public List<RrpMemoERADTO> getAllRrpMemoData() {
@@ -47,6 +51,7 @@ public class RrpMemoERAServiceImpl implements RrpMemoERAService {
         return dtos;
     }
 
+    @Transactional
     @Override
     public void uploadRrpMemo(List<RrpMemoERADTO> dtos) {
         List<RrpMemoERAEntity> entities = new ArrayList<>();
@@ -83,6 +88,7 @@ public class RrpMemoERAServiceImpl implements RrpMemoERAService {
         log.info("Uploaded or updated {} records from the DTOs.", entities.size());
     }
 
+/*    @Transactional
     @Override
     public void updateRrpMemo(RrpMemoERADTO dto) {
         // Extract the composite ID from the DTO
@@ -102,8 +108,26 @@ public class RrpMemoERAServiceImpl implements RrpMemoERAService {
         // Save the updated entity
         repository.save(existingEntity);
         log.info("Updated entity with ID: {}", entityId);
+    }*/
+
+    @Override
+    public void updateRrpMemo(RrpMemoERADTO dto) {
+        // Map DTO to updated entity
+        RrpMemoERAEntity updatedEntity = new RrpMemoERAEntity();
+        updatedEntity.setId(new RrpMemoEntityId(dto.getMleGlEntyId(), dto.getClndrId()));
+        updatedEntity.setIsNew(dto.getIsNew());
+        updatedEntity.setBatchCd(dto.getBatchCd());
+        updatedEntity.setMleAnnmntYear(dto.getMleAnnmntYear());
+        updatedEntity.setActive(dto.isActive());
+        updatedEntity.setModifiedTs(LocalDateTime.now());  // Set modified timestamp
+
+        // Call the Update Utility with mapped entity
+        UpdateUtil.updateEntity(
+                repository, updatedEntity.getId(), updatedEntity
+        );
     }
 
+    @Transactional
     @Override
     public void deleteRrpMemo(List<RrpMemoERADTO> rrpMemoERADTOList) {
         log.info("In deleteRrpMemo() of Rrp Service impl");
