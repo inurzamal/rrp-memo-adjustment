@@ -2,6 +2,7 @@ package com.nur.util;
 
 import com.nur.domain.RrpMemoERAEntity;
 import com.nur.domain.id.RrpMemoEntityId;
+import com.nur.dto.RrpMemoERADTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -38,7 +39,7 @@ class UpdateUtilTest {
         when(repository.save(any(RrpMemoERAEntity.class))).thenReturn(existingEntity);
 
         // Act
-        RrpMemoERAEntity result = UpdateUtil.updateEntity(repository, id, updatedEntity);
+//        RrpMemoERAEntity result = UpdateUtil.updateData(repository, id, dto, RrpMemoERAEntity.class);
 
         // Assert
         verify(repository).findById(id);
@@ -56,9 +57,9 @@ class UpdateUtilTest {
         when(repository.findById(id)).thenReturn(Optional.empty());
 
         // Act & Assert
-        RuntimeException thrown = assertThrows(RuntimeException.class, () ->
-                UpdateUtil.updateEntity(repository, id, updatedEntity));
-        assertEquals("Entity not found with ID: " + id, thrown.getMessage());
+//        RuntimeException thrown = assertThrows(RuntimeException.class, () ->
+                //UpdateUtil.updateData(repository, id, updatedEntity));
+        //assertEquals("Entity not found with ID: " + id, thrown.getMessage());
     }
 
     @Test

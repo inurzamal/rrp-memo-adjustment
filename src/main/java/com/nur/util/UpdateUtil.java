@@ -15,18 +15,22 @@ import java.util.Arrays;
 public class UpdateUtil {
 
     @Transactional
-    public static <T, ID> T updateEntity(
-            JpaRepository<T, ID> repository, ID id, T updatedEntity) {
+    public static <T, D, ID> void updateData(
+            JpaRepository<T, ID> repository, ID id, D updatedDTO, Class<T> entityClass) {
 
         // Fetch the existing entity by composite ID
         T existingEntity = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Entity not found with ID: " + id));
 
-        // Copy necessary fields from the updated entity to the existing entity
+        // Create a new entity instance and copy properties from the DTO
+        T updatedEntity = BeanUtils.instantiateClass(entityClass);
+        BeanUtils.copyProperties(updatedDTO, updatedEntity, getNullPropertyNames(updatedDTO));
+
+        // Copy the necessary fields from the updated entity to the existing entity
         BeanUtils.copyProperties(updatedEntity, existingEntity, getNullPropertyNames(updatedEntity));
 
         // Save the updated entity
-        return repository.save(existingEntity);
+        repository.save(existingEntity);
     }
 
     // Utility method to ignore null values while copying properties

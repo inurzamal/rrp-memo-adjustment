@@ -112,19 +112,11 @@ public class RrpMemoERAServiceImpl implements RrpMemoERAService {
 
     @Override
     public void updateRrpMemo(RrpMemoERADTO dto) {
-        // Map DTO to updated entity
-        RrpMemoERAEntity updatedEntity = new RrpMemoERAEntity();
-        updatedEntity.setId(new RrpMemoEntityId(dto.getMleGlEntyId(), dto.getClndrId()));
-        updatedEntity.setIsNew(dto.getIsNew());
-        updatedEntity.setBatchCd(dto.getBatchCd());
-        updatedEntity.setMleAnnmntYear(dto.getMleAnnmntYear());
-        updatedEntity.setActive(dto.isActive());
-        updatedEntity.setModifiedTs(LocalDateTime.now());  // Set modified timestamp
-
-        // Call the Update Utility with mapped entity
-        UpdateUtil.updateEntity(
-                repository, updatedEntity.getId(), updatedEntity
-        );
+        // Call the Update Utility with the DTO and entity class, no need to return anything
+        UpdateUtil.updateData(repository,
+                new RrpMemoEntityId(dto.getMleGlEntyId(), dto.getClndrId()),
+                dto,
+                RrpMemoERAEntity.class);
     }
 
     @Transactional
