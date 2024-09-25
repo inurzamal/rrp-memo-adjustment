@@ -112,12 +112,12 @@ public class RrpMemoERAServiceImpl implements RrpMemoERAService {
 
     @Override
     public void updateRrpMemo(RrpMemoERADTO dto) {
-        // Call the Update Utility with the DTO and entity class, no need to return anything
-        UpdateUtil.updateData(repository,
+        // Call the Update Utility with the DTO, using the existing entity from the repository
+        UpdateUtil.updateEntity(repository,
                 new RrpMemoEntityId(dto.getMleGlEntyId(), dto.getClndrId()),
-                dto,
-                RrpMemoERAEntity.class);
+                dto);
     }
+
 
     @Transactional
     @Override

@@ -15,26 +15,22 @@ import java.util.Arrays;
 public class UpdateUtil {
 
     @Transactional
-    public static <T, D, ID> void updateData(
-            JpaRepository<T, ID> repository, ID id, D updatedDTO, Class<T> entityClass) {
+    public static <T, D, ID> void updateEntity(
+            JpaRepository<T, ID> repository, ID id, D updatedDTO) {
 
         // Fetch the existing entity by composite ID
         T existingEntity = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Entity not found with ID: " + id));
 
-        // Create a new entity instance and copy properties from the DTO
-        T updatedEntity = BeanUtils.instantiateClass(entityClass);
-        BeanUtils.copyProperties(updatedDTO, updatedEntity, getNullPropertyNames(updatedDTO));
-
-        // Copy the necessary fields from the updated entity to the existing entity
-        BeanUtils.copyProperties(updatedEntity, existingEntity, getNullPropertyNames(updatedEntity));
+        // Copy necessary fields from the updated DTO to the existing entity
+        BeanUtils.copyProperties(updatedDTO, existingEntity, getNullPropertyNames(updatedDTO));
 
         // Save the updated entity
-        repository.save(existingEntity);
+        repository.save(existingEntity);  // Hibernate will treat this as an update since it is attached to the persistence context
     }
 
     // Utility method to ignore null values while copying properties
-    String[] getNullPropertyNames(Object source) {
+    private String[] getNullPropertyNames(Object source) {
         final BeanWrapper src = new BeanWrapperImpl(source);
         java.beans.PropertyDescriptor[] pds = src.getPropertyDescriptors();
 
@@ -44,3 +40,4 @@ public class UpdateUtil {
                 .toArray(String[]::new);
     }
 }
+
