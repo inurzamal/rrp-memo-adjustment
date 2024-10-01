@@ -3,6 +3,7 @@ package com.nur.service.impl;
 import com.nur.domain.RrpMemoERAEntity;
 import com.nur.domain.id.RrpMemoEntityId;
 import com.nur.dto.RrpMemoERADTO;
+import com.nur.exceptions.BadRequestException;
 import com.nur.repository.RrpMemoERARepository;
 import com.nur.service.RrpMemoERAService;
 import com.nur.util.UpdateUtil;
@@ -54,39 +55,64 @@ public class RrpMemoERAServiceImpl implements RrpMemoERAService {
     @Transactional
     @Override
     public void uploadRrpMemo(List<RrpMemoERADTO> dtos) {
+        // Directly validate DTOs; exception will be thrown if validation fails
+        validateRrp(dtos);
+
         List<RrpMemoERAEntity> entities = new ArrayList<>();
 
         for (RrpMemoERADTO dto : dtos) {
             RrpMemoEntityId entityId = new RrpMemoEntityId(dto.getMleGlEntyId(), dto.getClndrId());
 
-            // Check if an entity with the given ID already exists in the database
             RrpMemoERAEntity existingEntity = repository.findById(entityId).orElse(null);
 
             if (existingEntity != null) {
-                // Update existing entity's fields from the DTO
                 existingEntity.setIsNew(dto.getIsNew());
                 existingEntity.setBatchCd(dto.getBatchCd());
                 existingEntity.setMleAnnmntYear(dto.getMleAnnmntYear());
-                existingEntity.setActive(dto.isActive());
-                existingEntity.setModifiedTs(LocalDateTime.now());  // Update modified timestamp
+                existingEntity.setActive(false);
+                existingEntity.setModifiedTs(LocalDateTime.now());
 
                 log.info("Updating existing entity with ID: {}", entityId);
                 entities.add(existingEntity);
             } else {
-                // Create a new entity from the DTO
                 RrpMemoERAEntity newEntity = mapDtoToEntity(dto);
-                newEntity.setCreatedTs(LocalDateTime.now());   // Set created timestamp
-                newEntity.setModifiedTs(LocalDateTime.now());  // Set modified timestamp
+                newEntity.setCreatedTs(LocalDateTime.now());
+                newEntity.setModifiedTs(LocalDateTime.now());
 
                 log.info("Creating new entity with ID: {}", entityId);
                 entities.add(newEntity);
             }
         }
 
-        // Save or update entities in the repository
         repository.saveAll(entities);
         log.info("Uploaded or updated {} records from the DTOs.", entities.size());
     }
+
+
+
+    // Validation method to check for null or empty fields
+// Validation method to throw BadRequestException directly
+    private void validateRrp(List<RrpMemoERADTO> dtos) {
+        for (RrpMemoERADTO dto : dtos) {
+            if (dto.getIsNew() == null || dto.getIsNew().isEmpty()) {
+                throw new BadRequestException("Field 'isNew' should not be null or empty.");
+            }
+            if (dto.getMleGlEntyId() == null || dto.getMleGlEntyId().isEmpty()) {
+                throw new BadRequestException("Field 'mleGlEntyId' should not be null or empty.");
+            }
+            if (dto.getClndrId() == null) {
+                throw new BadRequestException("Field 'clndrId' should not be null.");
+            }
+            if (dto.getBatchCd() == null || dto.getBatchCd().isEmpty()) {
+                throw new BadRequestException("Field 'batchCd' should not be null or empty.");
+            }
+        }
+    }
+
+
+
+
+
 
 /*    @Transactional
     @Override

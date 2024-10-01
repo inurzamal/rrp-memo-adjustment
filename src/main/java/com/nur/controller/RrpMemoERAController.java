@@ -84,16 +84,20 @@ public class RrpMemoERAController {
             Sheet sheet = workbook.getSheetAt(0); // Assuming data is in the first sheet
             for (Row row : sheet) {
                 // Skip the header row and rows with missing/empty critical data
-                if (row.getRowNum() == 0 || row.getCell(0) == null ||
-                        CommonUtil.isAnyTrue(
-                                isEmpty(getStringCellValue(row, 1, uploadHeaderNames, uploadHeaderTypes)),
-                                isEmpty(getNumericCellValue(row, 2, uploadHeaderNames, uploadHeaderTypes)))) {
+//                if (row.getRowNum() == 0 || row.getCell(0) == null ||
+//                        CommonUtil.isAnyTrue(
+//                                isEmpty(getStringCellValue(row, 1, uploadHeaderNames, uploadHeaderTypes)),
+//                                isEmpty(getNumericCellValue(row, 2, uploadHeaderNames, uploadHeaderTypes)))) {
+//                    continue;
+//                }
+
+                if (row.getRowNum() == 0 || row.getCell(0) == null) {
                     continue;
                 }
 
                 int col = 0;
                 RrpMemoERADTO dto = new RrpMemoERADTO();
-                dto.setActive(true);
+                //dto.setActive(true);
                 dto.setIsNew(getStringCellValue(row, col++, uploadHeaderNames, uploadHeaderTypes));
                 dto.setMleGlEntyId(getStringCellValue(row, col++, uploadHeaderNames, uploadHeaderTypes));
                 dto.setClndrId(getNumericCellValue(row, col++, uploadHeaderNames, uploadHeaderTypes));
