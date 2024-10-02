@@ -55,7 +55,7 @@ public class RrpMemoERAServiceImpl implements RrpMemoERAService {
     @Transactional
     @Override
     public void uploadRrpMemo(List<RrpMemoERADTO> dtos) {
-        // Directly validate DTOs; exception will be thrown if validation fails
+
         validateRrp(dtos);
 
         List<RrpMemoERAEntity> entities = new ArrayList<>();
@@ -89,9 +89,6 @@ public class RrpMemoERAServiceImpl implements RrpMemoERAService {
     }
 
 
-
-    // Validation method to check for null or empty fields
-// Validation method to throw BadRequestException directly
     private void validateRrp(List<RrpMemoERADTO> dtos) {
         for (RrpMemoERADTO dto : dtos) {
             if (dto.getIsNew() == null || dto.getIsNew().isEmpty()) {

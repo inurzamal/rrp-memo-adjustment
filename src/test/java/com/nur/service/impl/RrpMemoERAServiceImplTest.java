@@ -3,6 +3,7 @@ package com.nur.service.impl;
 import com.nur.domain.RrpMemoERAEntity;
 import com.nur.domain.id.RrpMemoEntityId;
 import com.nur.dto.RrpMemoERADTO;
+import com.nur.exceptions.BadRequestException;
 import com.nur.repository.RrpMemoERARepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -15,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -40,29 +42,92 @@ class RrpMemoERAServiceImplTest {
     @ParameterizedTest
     @MethodSource("dataProvider")
     void testGetAllRrpMemos(List<RrpMemoERADTO> dtoList, List<RrpMemoERAEntity> entityList) {
-        // Mocking repository response
         when(repository.getAllRrpMemos()).thenReturn(entityList);
-
-        // Execution
         List<RrpMemoERADTO> result = service.getAllRrpMemoData();
-
-        // Verification
         assertNotNull(result);
         assertEquals(entityList.size(), result.size());
         verify(repository, times(1)).getAllRrpMemos();
     }
 
-    @ParameterizedTest
-    @MethodSource("dataProvider")
-    void testUploadRrpMemo(List<RrpMemoERADTO> dtoList, List<RrpMemoERAEntity> entityList) {
-        // Mock repository save
-        when(repository.saveAll(anyList())).thenReturn(entityList);
+//    @ParameterizedTest
+//    @MethodSource("dataProvider")
+//    void testUploadRrpMemo_withValidation(List<RrpMemoERADTO> validDtoList, List<RrpMemoERAEntity> entityList) {
+//
+//        when(repository.saveAll(anyList())).thenReturn(entityList);
+//        service.uploadRrpMemo(validDtoList);
+//        verify(repository, times(1)).saveAll(anyList());
+//    }
 
-        // Execution
-        service.uploadRrpMemo(dtoList);
+    @Test
+    void testUploadRrpMemo_updateExistingEntity() {
+        // Mocking an existing entity in the repository
+        RrpMemoEntityId entityId = new RrpMemoEntityId("MLE123", 2024);
+        RrpMemoERAEntity existingEntity = new RrpMemoERAEntity();
+        existingEntity.setId(new RrpMemoEntityId("MLE123",2024));
 
-        // Verification
+
+        // Creating a DTO with matching entityId
+        RrpMemoERADTO validDto = new RrpMemoERADTO();
+        validDto.setMleGlEntyId("MLE123");
+        validDto.setClndrId(2024);
+        validDto.setIsNew("Y");
+        validDto.setBatchCd("B123");
+
+        List<RrpMemoERADTO> validDtoList = Arrays.asList(validDto);
+
+        // Mock repository behavior to return the existing entity
+        when(repository.findById(entityId)).thenReturn(Optional.of(existingEntity));
+
+        // Execution - should update the existing entity
+        service.uploadRrpMemo(validDtoList);
+
+        // Verify that the existing entity was updated and saved
         verify(repository, times(1)).saveAll(anyList());
+        assertEquals("Y", existingEntity.getIsNew()); // Ensure the entity was updated
+        assertEquals("B123", existingEntity.getBatchCd()); // Ensure batch code was updated
+    }
+
+    @Test
+    void testUploadRrpMemo_createNewEntity() {
+        // Creating a DTO for a new entity (non-existing entityId)
+        RrpMemoERADTO validDto = new RrpMemoERADTO();
+        validDto.setMleGlEntyId("MLE999"); // Non-existent entity ID
+        validDto.setClndrId(2025);
+        validDto.setIsNew("Y");
+        validDto.setBatchCd("B999");
+
+        List<RrpMemoERADTO> validDtoList = Arrays.asList(validDto);
+
+        // Mock repository behavior to return null (i.e., no existing entity found)
+        RrpMemoEntityId newEntityId = new RrpMemoEntityId("MLE999", 2025);
+        when(repository.findById(newEntityId)).thenReturn(Optional.empty());
+
+        // Execution - should create a new entity
+        service.uploadRrpMemo(validDtoList);
+
+        // Verify that a new entity was created and saved
+        verify(repository, times(1)).saveAll(anyList());
+    }
+
+
+
+    @Test
+    void testUploadRrpMemo_withValidationFailure() {
+        // Create an invalid DTO list with null or empty fields
+        RrpMemoERADTO invalidDto = new RrpMemoERADTO();
+        invalidDto.setIsNew(""); // invalid - isNew is empty
+        invalidDto.setMleGlEntyId(null); // invalid - mleGlEntyId is null
+        invalidDto.setClndrId(2024);
+        invalidDto.setBatchCd("B123");
+
+        List<RrpMemoERADTO> invalidDtoList = Arrays.asList(invalidDto);
+
+        // Execution and Verification - should throw BadRequestException
+        BadRequestException exception = assertThrows(BadRequestException.class, () -> service.uploadRrpMemo(invalidDtoList));
+        assertEquals("Field 'isNew' should not be null or empty.", exception.getMessage());
+
+        // Ensure the repository save is never called due to validation failure
+        verify(repository, never()).saveAll(anyList());
     }
 
     @ParameterizedTest
@@ -71,51 +136,44 @@ class RrpMemoERAServiceImplTest {
         RrpMemoERADTO dto = dtoList.get(0);
         RrpMemoERAEntity entity = entityList.get(0);
 
-        // Mock repository findById and save
         when(repository.findById(any(RrpMemoEntityId.class))).thenReturn(Optional.of(entity));
         when(repository.save(any(RrpMemoERAEntity.class))).thenReturn(entity);
 
-        // Execution
         service.updateRrpMemo(dto);
 
-        // Verification
         verify(repository, times(1)).findById(any(RrpMemoEntityId.class));
         verify(repository, times(1)).save(any(RrpMemoERAEntity.class));
     }
 
     @Test
-    @Disabled
     void testUpdateRrpMemoEntityNotFound() {
         RrpMemoERADTO dto = new RrpMemoERADTO();
         dto.setMleGlEntyId("MLE123");
         dto.setClndrId(2024);
 
-        // Mock repository to return empty Optional
         when(repository.findById(any(RrpMemoEntityId.class))).thenReturn(Optional.empty());
 
-        // Execution and Verification
         RuntimeException exception = assertThrows(RuntimeException.class, () -> service.updateRrpMemo(dto));
-        assertEquals("Rrp Memo record not found with ID: " + new RrpMemoEntityId(dto.getMleGlEntyId(), dto.getClndrId()), exception.getMessage());
+        assertEquals("Entity not found with ID: " + new RrpMemoEntityId(dto.getMleGlEntyId(), dto.getClndrId()), exception.getMessage());
     }
 
 
     @ParameterizedTest
     @MethodSource("dataProvider")
     void testDeleteRrpMemo(List<RrpMemoERADTO> dtoList, List<RrpMemoERAEntity> entityList) {
-        // Execution
+
         service.deleteRrpMemo(dtoList);
 
-        // Verification
         verify(repository, times(1)).deleteAllById(anyList());
         verify(repository, times(1)).flush();
     }
 
-    // Data provider method for parameterized tests using Arguments.of()
     private static Stream<Arguments> dataProvider() {
         RrpMemoERADTO dto1 = new RrpMemoERADTO();
         dto1.setMleGlEntyId("MLE123");
         dto1.setClndrId(2024);
         dto1.setIsNew("YES");
+        dto1.setBatchCd("B123");
 
         RrpMemoERAEntity entity1 = new RrpMemoERAEntity();
         entity1.setId(new RrpMemoEntityId(dto1.getMleGlEntyId(), dto1.getClndrId()));
@@ -125,135 +183,15 @@ class RrpMemoERAServiceImplTest {
         dto2.setMleGlEntyId("MLE124");
         dto2.setClndrId(2023);
         dto2.setIsNew("NO");
+        dto2.setBatchCd("B123");
 
         RrpMemoERAEntity entity2 = new RrpMemoERAEntity();
         entity2.setId(new RrpMemoEntityId(dto2.getMleGlEntyId(), dto2.getClndrId()));
         entity2.setActive(false);
 
-        // Returning a Stream<Arguments> using Arguments.of()
         return Stream.of(
                 Arguments.of(Arrays.asList(dto1), Arrays.asList(entity1)),
                 Arguments.of(Arrays.asList(dto2), Arrays.asList(entity2))
         );
     }
 }
-
-
-
-/*
-package com.nur.service.impl;
-import com.nur.domain.RrpMemoERAEntity;
-import com.nur.domain.id.RrpMemoEntityId;
-import com.nur.dto.RrpMemoERADTO;
-import com.nur.repository.RrpMemoERARepository;
-import org.instancio.Instancio;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-
-import java.util.List;
-
-import static org.instancio.Select.field;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.*;
-
-class RrpMemoERAServiceImplTest {
-
-    @Mock
-    private RrpMemoERARepository repository;
-
-    @InjectMocks
-    private RrpMemoERAServiceImpl service;
-
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-    }
-
-    @Test
-    void testGetAllRrpMemos() {
-        // Mocking repository response
-        when(repository.getAllRrpMemos()).thenReturn(createEntityList());
-
-        // Execution
-        List<RrpMemoERADTO> result = service.getAllRrpMemoData();
-
-        // Verification
-        assertNotNull(result);
-        assertEquals(2, result.size());
-        //assertEquals("MLE123", result.get(0).getMleGlEntyId());
-        verify(repository, times(1)).getAllRrpMemos();
-    }
-
-    @Test
-    void testUploadRrpMemo() {
-        // Mock repository save
-        when(repository.saveAll(anyList())).thenReturn(createEntityList());
-
-        // Execution
-        service.uploadRrpMemo(createDtoList());
-
-        // Verification
-        verify(repository, times(1)).saveAll(anyList());
-    }
-
-    @Test
-    void testUpdateRrpMemo() {
-        // Mock data
-        RrpMemoERADTO dto = createDto();
-        RrpMemoERAEntity entity = createEntity();
-
-        // Mock repository findById and save
-        when(repository.findById(any(RrpMemoEntityId.class))).thenReturn(java.util.Optional.of(entity));
-        when(repository.save(any(RrpMemoERAEntity.class))).thenReturn(entity);
-
-        // Execution
-        service.updateRrpMemo(dto);
-
-        // Verification
-        verify(repository, times(1)).findById(any(RrpMemoEntityId.class));
-        verify(repository, times(1)).save(any(RrpMemoERAEntity.class));
-    }
-
-    @Test
-    void testDeleteRrpMemo() {
-        // Execution
-        service.deleteRrpMemo(createDtoList());
-
-        // Verification
-        verify(repository, times(1)).deleteAllById(anyList());
-        verify(repository, times(1)).flush();
-    }
-
-    // Generate DTO using Instancio
-    private RrpMemoERADTO createDto() {
-        return Instancio.of(RrpMemoERADTO.class)
-                .set(field(RrpMemoERADTO::getMleGlEntyId), "MLE123")
-                .set(field(RrpMemoERADTO::getClndrId), 2024)
-                .set(field(RrpMemoERADTO::getIsNew), "Y")
-                .create();
-    }
-
-    // Generate Entity using Instancio
-    private RrpMemoERAEntity createEntity() {
-        return Instancio.of(RrpMemoERAEntity.class)
-                .set(field(RrpMemoERAEntity::getId), new RrpMemoEntityId("MLE123", 2024))
-                .set(field(RrpMemoERAEntity::isActive), true)
-                .create();
-    }
-
-    // Generate lists of DTOs and Entities
-    private List<RrpMemoERADTO> createDtoList() {
-        return Instancio.ofList(RrpMemoERADTO.class).size(2).create();
-    }
-
-    private List<RrpMemoERAEntity> createEntityList() {
-        return Instancio.ofList(RrpMemoERAEntity.class).size(2).create();
-    }
-}
-*/
