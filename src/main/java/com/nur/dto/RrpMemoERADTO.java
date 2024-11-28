@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 @Data
 public class RrpMemoERADTO implements BaseDTO, DTOEntity {
 
-    private boolean isActive;
+    private boolean isActive; // make it Boolean
     private String isNew;
     private String mleGlEntyId;
     private Integer clndrId;
