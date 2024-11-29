@@ -43,14 +43,18 @@ public class RatingActionController {
             @PathVariable String country,
             @PathVariable String ratingDate) {
 
-        RatingActionId id = new RatingActionId();
-        id.setCountry(country);
-        id.setRatingDate(LocalDate.parse(ratingDate));
-
-        Optional<RatingActionEntity> action = service.getRatingActionById(id);
-        return action.map(value -> ResponseEntity.ok(modelMapper.map(value, RatingDTO.class)))
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        LocalDate parsedDate = LocalDate.parse(ratingDate);
+        Optional<RatingActionEntity> action = service.getRatingActionByCountryAndDate(country, parsedDate);
+        return action.map(value -> {
+            RatingDTO dto = modelMapper.map(value, RatingDTO.class);
+            if (value.getId() != null) {
+                dto.setCountry(value.getId().getCountry());
+                dto.setRatingDate(value.getId().getRatingDate());
+            }
+            return ResponseEntity.ok(dto);
+        }).orElseGet(() -> ResponseEntity.notFound().build());
     }
+
 
     @GetMapping("/fetchAll")
     public ResponseEntity<List<RatingDTO>> getRatingActions() {

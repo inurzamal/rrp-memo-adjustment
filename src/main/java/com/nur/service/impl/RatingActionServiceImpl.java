@@ -7,6 +7,7 @@ import com.nur.service.RatingActionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,13 +24,13 @@ public class RatingActionServiceImpl implements RatingActionService {
         return repository.save(action);
     }
 
-    public Optional<RatingActionEntity> getRatingActionById(RatingActionId id) {
-        return repository.findById(id);
+    public Optional<RatingActionEntity> getRatingActionByCountryAndDate(String country, LocalDate ratingDate) {
+        return repository.findByCountryAndRatingDate(country, ratingDate);
     }
 
     @Override
     public List<RatingActionEntity> getAllRatingActions() {
-        return repository.findAll();
+        return repository.findAllData();
     }
 }
 
