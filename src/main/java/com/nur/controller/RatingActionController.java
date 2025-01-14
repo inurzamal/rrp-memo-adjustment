@@ -49,6 +49,39 @@ public class RatingActionController {
         return ResponseEntity.ok(responseDto);
     }
 
+    @PutMapping
+    public ResponseEntity<RatingDTO> updateRatingAction(@RequestBody RatingDTO dto) {
+
+        Optional<RatingActionEntity> existingAction = service.getRatingActionByCountryAndDate(dto.getCountry(), dto.getRatingDate());
+
+        if (existingAction.isPresent()) {
+            RatingActionEntity action = existingAction.get();
+
+            // Update the fields
+            action.setOldCrg(dto.getOldCrg());
+            action.setOldCrrOutlook(dto.getOldCrrOutlook());
+            action.setNewCrg(dto.getNewCrg());
+            action.setNewCrrOutlook(dto.getNewCrrOutlook());
+            action.setRattingComment(dto.getRattingComment());
+            action.setOldCrr(dto.getOldCrr());
+            action.setNewCrr(dto.getNewCrr());
+
+            // Save the updated entity
+            RatingActionEntity updatedAction = service.addRatingAction(action);
+
+            // Convert to DTO for response
+            RatingDTO responseDto = modelMapper.map(updatedAction, RatingDTO.class);
+            responseDto.setCountry(dto.getCountry());
+            responseDto.setRatingDate(dto.getRatingDate());
+
+            return ResponseEntity.ok(responseDto);
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(null); // or add a custom error response if needed
+        }
+    }
+
+
     @GetMapping("/{country}/{ratingDate}")
     public ResponseEntity<RatingDTO> getRatingAction(
             @PathVariable String country,
